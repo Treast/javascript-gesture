@@ -9,7 +9,11 @@ export default class Canvas {
   private net: any;
   private corners: Vector2[];
   private lastHandPosition: Vector2;
+  private cursorPosition: Vector2;
   private boo = false;
+  private videoHeight: number;
+  private videoWidth: number;
+  private button: Vector2;
   constructor() {
     this.canvas = document.querySelector('canvas');
     this.canvas.width = window.innerWidth;
@@ -38,7 +42,17 @@ export default class Canvas {
       if (e.keyCode === 32 && this.corners.length < 4) {
         this.corners.push(this.lastHandPosition);
       }
+
+      if (e.keyCode === 17) {
+        this.addButton();
+      }
     });
+  }
+
+  addButton() {
+    const x = Math.floor(Math.random() * this.videoWidth);
+    const y = Math.floor(Math.random() * this.videoHeight);
+    this.button = new Vector2(x, y);
   }
 
   drawCorners() {
@@ -97,6 +111,8 @@ export default class Canvas {
   async render() {
     requestAnimationFrame(() => this.render());
     const video = Webcam.getVideo();
+    this.videoWidth = video.width;
+    this.videoHeight = video.height;
     const pose = await this.net.estimateSinglePose(video, 0.5, true, 16);
     this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     this.ctx.save();
@@ -110,6 +126,10 @@ export default class Canvas {
     const keyPoints = pose.keypoints;
     // const rightWrist = this.getPart('rightWrist', keyPoints);
     const rightWrist = this.getHand(keyPoints);
+
+    this.showButton();
+    this.checkButtonPressed();
+
     if (rightWrist) {
       this.ctx.fillStyle = 'red';
       const rightWristPosition = this.getPartLocation(rightWrist, video.width, video.height);
@@ -117,6 +137,25 @@ export default class Canvas {
       this.ctx.fillRect(rightWristPosition.x - 5, rightWristPosition.y - 5, 10, 10);
 
       this.showCursor(rightWristPosition, video.width, video.height);
+    }
+  }
+
+  showButton() {
+    if (this.button) {
+      this.ctx.beginPath();
+      this.ctx.fillStyle = 'blue';
+      this.ctx.arc(this.button.x, this.button.y, 30, 0, Math.PI * 2, true);
+      this.ctx.fill();
+    }
+  }
+
+  checkButtonPressed() {
+    if (this.button) {
+      const radius = 30;
+      if (this.cursorPosition.x >= this.button.x - 30 && this.cursorPosition.x <= this.button.x + 30
+      && this.cursorPosition.y >= this.button.y - 30 && this.cursorPosition.y <= this.button.y + 30) {
+        this.button = null;
+      }
     }
   }
 
@@ -128,11 +167,13 @@ export default class Canvas {
       const P0 = this.corners[3];
 
       const x = (handPosition.x - P3.x) / (P2.x - P3.x);
-      const y = (handPosition.y - P0.y) / (P1.y - P0.y);
+      const y = (handPosition.y - P2.y) / (P1.y - P2.y);
+
+      this.cursorPosition = new Vector2(x * window.innerWidth, y * (height / width) * window.innerWidth);
 
       this.ctx.beginPath();
       this.ctx.fillStyle = 'green';
-      this.ctx.arc(x * window.innerWidth, y * window.innerHeight, 10, 0, Math.PI * 2, true);
+      this.ctx.arc(this.cursorPosition.x, this.cursorPosition.y, 10, 0, Math.PI * 2, true);
       this.ctx.fill();
 
       // const P0P3 = P3.clone().substract(P0);
