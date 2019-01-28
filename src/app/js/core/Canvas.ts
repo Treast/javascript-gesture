@@ -2,6 +2,7 @@
 import * as posenet from '@tensorflow-models/posenet';
 import Webcam from './Webcam';
 import { Vector2 } from '../utils/Vector2';
+import DatGui from '../utils/DatGui';
 
 export default class Canvas {
   private canvas: HTMLCanvasElement;
@@ -15,7 +16,6 @@ export default class Canvas {
   private videoWidth: number;
   private button: Vector2;
   // Sliding
-  private isSliding = false;
   private previousSlidingPosition: Vector2;
   private originSlidingPosition: Vector2;
   private maxSlidingOffset: number = 100;
@@ -54,8 +54,8 @@ export default class Canvas {
       }
 
       if (e.keyCode === 18) {
-        this.isSliding = !this.isSliding;
-        console.log('Sliding', this.isSliding);
+        DatGui.options.isSliding = !DatGui.options.isSliding;
+        console.log('Sliding', DatGui.options.isSliding);
       }
     });
   }
@@ -67,53 +67,59 @@ export default class Canvas {
   }
 
   drawCorners() {
-    this.corners.map((item: Vector2) => {
-      this.ctx.fillStyle = '#9ce5f4';
-      this.ctx.beginPath();
-      this.ctx.fillRect(item.x - 5, item.y - 5, 10, 10);
-    });
-    for (let i = 1; i < this.corners.length; i += 1) {
-      const currentCorner = this.corners[i];
-      const previousCorner = this.corners[i - 1];
-      this.ctx.strokeStyle = '#9ce5f4';
-      this.ctx.beginPath();
-      this.ctx.moveTo(previousCorner.x, previousCorner.y);
-      this.ctx.lineTo(currentCorner.x, currentCorner.y);
-      this.ctx.stroke();
+
+    if (DatGui.options.showCorners) {
+      this.corners.map((item: Vector2) => {
+        this.ctx.fillStyle = '#9ce5f4';
+        this.ctx.beginPath();
+        this.ctx.fillRect(item.x - 5, item.y - 5, 10, 10);
+      });
     }
 
-    if (this.corners.length === 4) {
-      const firstCorner = this.corners[0];
-      const lastCorner = this.corners[3];
-      this.ctx.strokeStyle = '#9ce5f4';
-      this.ctx.beginPath();
-      this.ctx.moveTo(firstCorner.x, firstCorner.y);
-      this.ctx.lineTo(lastCorner.x, lastCorner.y);
-      this.ctx.stroke();
+    if (DatGui.options.showPerspectiveCorners) {
+      for (let i = 1; i < this.corners.length; i += 1) {
+        const currentCorner = this.corners[i];
+        const previousCorner = this.corners[i - 1];
+        this.ctx.strokeStyle = '#9ce5f4';
+        this.ctx.beginPath();
+        this.ctx.moveTo(previousCorner.x, previousCorner.y);
+        this.ctx.lineTo(currentCorner.x, currentCorner.y);
+        this.ctx.stroke();
+      }
 
-      if (false) {
-        const dx = Math.abs(this.corners[0].x - this.corners[3].x);
-        const h = Math.abs(this.corners[3].y - this.corners[0].y);
-        const dy = Math.abs(this.corners[3].y - this.corners[2].y);
-        const w = Math.abs(this.corners[3].x - this.corners[2].x);
-        this.corners.map((item: Vector2) => {
-          const originX = item.x;
-          item.x = item.x + dx * (item.y / h);
-          item.y = item.y + dy * (originX / w);
-        });
+      if (this.corners.length === 4) {
+        const firstCorner = this.corners[0];
+        const lastCorner = this.corners[3];
+        this.ctx.strokeStyle = '#9ce5f4';
+        this.ctx.beginPath();
+        this.ctx.moveTo(firstCorner.x, firstCorner.y);
+        this.ctx.lineTo(lastCorner.x, lastCorner.y);
+        this.ctx.stroke();
 
-        if (!this.boo) {
-          const ux = this.corners[0].x - this.corners[3].x;
-          const uy = this.corners[0].y - this.corners[3].y;
-          const vx = this.corners[2].x - this.corners[3].x;
-          const vy = this.corners[2].y - this.corners[3].y;
+        if (false) {
+          const dx = Math.abs(this.corners[0].x - this.corners[3].x);
+          const h = Math.abs(this.corners[3].y - this.corners[0].y);
+          const dy = Math.abs(this.corners[3].y - this.corners[2].y);
+          const w = Math.abs(this.corners[3].x - this.corners[2].x);
+          this.corners.map((item: Vector2) => {
+            const originX = item.x;
+            item.x = item.x + dx * (item.y / h);
+            item.y = item.y + dy * (originX / w);
+          });
 
-          const u = new Vector2(ux, uy);
-          const v = new Vector2(vx, vy);
+          if (!this.boo) {
+            const ux = this.corners[0].x - this.corners[3].x;
+            const uy = this.corners[0].y - this.corners[3].y;
+            const vx = this.corners[2].x - this.corners[3].x;
+            const vy = this.corners[2].y - this.corners[3].y;
 
-          u.scalar(v);
-          this.corners[1] = u;
-          this.boo = true;
+            const u = new Vector2(ux, uy);
+            const v = new Vector2(vx, vy);
+
+            u.scalar(v);
+            this.corners[1] = u;
+            this.boo = true;
+          }
         }
       }
     }
@@ -142,10 +148,13 @@ export default class Canvas {
     this.checkButtonPressed();
 
     if (rightWrist) {
-      this.ctx.fillStyle = 'red';
       const rightWristPosition = this.getPartLocation(rightWrist, video.width, video.height);
-      this.lastHandPosition = rightWristPosition;
-      this.ctx.fillRect(rightWristPosition.x - 5, rightWristPosition.y - 5, 10, 10);
+
+      if (DatGui.options.showHandPosition) {
+        this.ctx.fillStyle = 'red';
+        this.lastHandPosition = rightWristPosition;
+        this.ctx.fillRect(rightWristPosition.x - 5, rightWristPosition.y - 5, 10, 10);
+      }
 
       this.showCursor(rightWristPosition, video.width, video.height);
 
@@ -155,7 +164,7 @@ export default class Canvas {
 
   checkSliding(pose: any) {
     const handPosition = this.cursorPosition;
-    if (this.isSliding) {
+    if (DatGui.options.isSliding) {
       const handPart = this.getHand(pose.keypoints);
       const shoulderPart = this.getPart('rightShoulder', pose.keypoints);
 
@@ -186,7 +195,7 @@ export default class Canvas {
   }
 
   resetSliding() {
-    this.isSliding = false;
+    DatGui.options.isSliding = false;
     this.originSlidingPosition = null;
   }
 
@@ -210,7 +219,7 @@ export default class Canvas {
   }
 
   showCursor(handPosition: Vector2, width: number, height: number) {
-    if (this.corners.length === 4) {
+    if (this.corners.length === 4 && DatGui.options.showCursor) {
       const P3 = this.corners[0];
       const P2 = this.corners[1];
       const P1 = this.corners[2];
