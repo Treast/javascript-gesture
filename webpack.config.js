@@ -12,7 +12,7 @@ let outputFileName = 'main.js';
 let mode = 'development';
 
 if (process.env.NODE_ENV === 'production') {
-  optimization.minimizer.push(new UglifyJsPlugin());
+  //optimization.minimizer.push(new UglifyJsPlugin());
   outputFileName = 'main.min.js';
   mode = 'production';
 }

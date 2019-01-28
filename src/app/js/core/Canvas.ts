@@ -14,6 +14,12 @@ export default class Canvas {
   private videoHeight: number;
   private videoWidth: number;
   private button: Vector2;
+  // Sliding
+  private isSliding = false;
+  private previousSlidingPosition: Vector2;
+  private originSlidingPosition: Vector2;
+  private maxSlidingOffset: number = 100;
+  private maxSliding: number = 500;
   constructor() {
     this.canvas = document.querySelector('canvas');
     this.canvas.width = window.innerWidth;
@@ -45,6 +51,11 @@ export default class Canvas {
 
       if (e.keyCode === 17) {
         this.addButton();
+      }
+
+      if (e.keyCode === 18) {
+        this.isSliding = !this.isSliding;
+        console.log('Sliding', this.isSliding);
       }
     });
   }
@@ -137,7 +148,46 @@ export default class Canvas {
       this.ctx.fillRect(rightWristPosition.x - 5, rightWristPosition.y - 5, 10, 10);
 
       this.showCursor(rightWristPosition, video.width, video.height);
+
+      this.checkSliding(pose);
     }
+  }
+
+  checkSliding(pose: any) {
+    const handPosition = this.cursorPosition;
+    if (this.isSliding) {
+      const handPart = this.getHand(pose.keypoints);
+      const shoulderPart = this.getPart('rightShoulder', pose.keypoints);
+
+      if (handPart.position.y > shoulderPart.position.y) {
+        console.log('Hand below shoulder');
+        this.resetSliding();
+        return false;
+      }
+
+      if (!this.originSlidingPosition) {
+        this.originSlidingPosition = handPosition;
+        this.previousSlidingPosition = handPosition;
+        return false;
+      }
+
+      if (Math.abs(handPosition.x - this.originSlidingPosition.x) >= this.maxSliding) {
+        console.log('Success');
+        this.resetSliding();
+      }
+
+      if (Math.abs(handPosition.x - this.previousSlidingPosition.x) <= this.maxSlidingOffset) {
+        this.previousSlidingPosition = handPosition;
+      } else {
+        console.log('Too much offset');
+        this.resetSliding();
+      }
+    }
+  }
+
+  resetSliding() {
+    this.isSliding = false;
+    this.originSlidingPosition = null;
   }
 
   showButton() {
@@ -195,13 +245,13 @@ export default class Canvas {
     }
   }
 
-  getPart(partName: string, keyPoints: []) {
+  getPart(partName: string, keyPoints: []): any {
     return keyPoints.find((item: any) => {
-      return item.part === 'rightWrist';
+      return item.part === partName;
     });
   }
 
-  getHand(keyPoints: []) {
+  getHand(keyPoints: []): any {
     const handKeyPoints = keyPoints.filter((item: any) => {
       return item.part === 'rightWrist' || item.part === 'leftWrist';
     });
