@@ -1,4 +1,5 @@
 import * as dat from 'dat.gui';
+import Canvas from '../core/Canvas';
 
 class DatGui {
   public gui: dat.GUI;
@@ -7,10 +8,15 @@ class DatGui {
     showPerspectiveCorners: true,
     showCursor: true,
     showHandPosition: true,
-    isSliding: true,
-    generateButton () {
+    isSliding: false,
+    buttonOffset: 30,
+    slidingWidth: 500,
+    slidingMaxOffset: 50,
+    generateButton: () => {
+      Canvas.addButton();
     },
-    activateSliding () {
+    activateSliding: () => {
+      this.options.isSliding = true;
     },
   };
 
@@ -22,8 +28,23 @@ class DatGui {
     informations.add(this.options, 'showCursor');
     informations.add(this.options, 'showHandPosition');
     const actions = this.gui.addFolder('Actions');
+    const buttonOffset = actions.add(this.options, 'buttonOffset').min(5).max(100);
+    const slidingMaxOffset = actions.add(this.options, 'slidingMaxOffset').min(5).max(100);
+    const slidingWidth = actions.add(this.options, 'slidingWidth').min(50).max(1000);
     actions.add(this.options, 'generateButton');
     actions.add(this.options, 'activateSliding');
+
+    buttonOffset.onChange((value: number) => {
+      Canvas.buttonOffset = value;
+    });
+
+    slidingMaxOffset.onChange((value: number) => {
+      Canvas.maxSlidingOffset = value;
+    });
+
+    slidingWidth.onChange((value: number) => {
+      Canvas.maxSliding = value;
+    });
   }
 }
 

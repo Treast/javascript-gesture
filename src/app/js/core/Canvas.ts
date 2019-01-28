@@ -12,14 +12,16 @@ export default class Canvas {
   private lastHandPosition: Vector2;
   private cursorPosition: Vector2;
   private boo = false;
-  private videoHeight: number;
-  private videoWidth: number;
-  private button: Vector2;
+  static videoHeight: number;
+  static videoWidth: number;
+  // Button
+  static buttonOffset: number = 30;
+  static button: Vector2;
   // Sliding
   private previousSlidingPosition: Vector2;
   private originSlidingPosition: Vector2;
-  private maxSlidingOffset: number = 100;
-  private maxSliding: number = 500;
+  static maxSlidingOffset: number = 100;
+  static maxSliding: number = 500;
   constructor() {
     this.canvas = document.querySelector('canvas');
     this.canvas.width = window.innerWidth;
@@ -50,7 +52,7 @@ export default class Canvas {
       }
 
       if (e.keyCode === 17) {
-        this.addButton();
+        Canvas.addButton();
       }
 
       if (e.keyCode === 18) {
@@ -60,10 +62,10 @@ export default class Canvas {
     });
   }
 
-  addButton() {
-    const x = Math.floor(Math.random() * this.videoWidth);
-    const y = Math.floor(Math.random() * this.videoHeight);
-    this.button = new Vector2(x, y);
+  static addButton() {
+    const x = Math.floor(Math.random() * Canvas.videoWidth);
+    const y = Math.floor(Math.random() * Canvas.videoHeight);
+    Canvas.button = new Vector2(x, y);
   }
 
   drawCorners() {
@@ -128,8 +130,8 @@ export default class Canvas {
   async render() {
     requestAnimationFrame(() => this.render());
     const video = Webcam.getVideo();
-    this.videoWidth = video.width;
-    this.videoHeight = video.height;
+    Canvas.videoWidth = video.width;
+    Canvas.videoHeight = video.height;
     const pose = await this.net.estimateSinglePose(video, 0.5, true, 16);
     this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     this.ctx.save();
@@ -165,11 +167,15 @@ export default class Canvas {
   checkSliding(pose: any) {
     const handPosition = this.cursorPosition;
     if (DatGui.options.isSliding) {
+      this.ctx.fillStyle = 'green';
+      this.ctx.font = ' 30px Arial';
+      this.ctx.fillText('Sliding activated', 20, (Canvas.videoHeight / Canvas.videoWidth) * window.innerWidth - 20);
       const handPart = this.getHand(pose.keypoints);
       const shoulderPart = this.getPart('rightShoulder', pose.keypoints);
 
       if (handPart.position.y > shoulderPart.position.y) {
         console.log('Hand below shoulder');
+        alert('Hand below shoulder');
         this.resetSliding();
         return false;
       }
@@ -180,15 +186,17 @@ export default class Canvas {
         return false;
       }
 
-      if (Math.abs(handPosition.x - this.originSlidingPosition.x) >= this.maxSliding) {
+      if (Math.abs(handPosition.x - this.originSlidingPosition.x) >= Canvas.maxSliding) {
         console.log('Success');
+        alert('Sliding offset');
         this.resetSliding();
       }
 
-      if (Math.abs(handPosition.x - this.previousSlidingPosition.x) <= this.maxSlidingOffset) {
+      if (Math.abs(handPosition.x - this.previousSlidingPosition.x) <= Canvas.maxSlidingOffset) {
         this.previousSlidingPosition = handPosition;
       } else {
         console.log('Too much offset');
+        alert('Too much offset');
         this.resetSliding();
       }
     }
@@ -200,20 +208,19 @@ export default class Canvas {
   }
 
   showButton() {
-    if (this.button) {
+    if (Canvas.button) {
       this.ctx.beginPath();
       this.ctx.fillStyle = 'blue';
-      this.ctx.arc(this.button.x, this.button.y, 30, 0, Math.PI * 2, true);
+      this.ctx.arc(Canvas.button.x, Canvas.button.y, 30, 0, Math.PI * 2, true);
       this.ctx.fill();
     }
   }
 
   checkButtonPressed() {
-    if (this.button) {
-      const radius = 30;
-      if (this.cursorPosition.x >= this.button.x - 30 && this.cursorPosition.x <= this.button.x + 30
-      && this.cursorPosition.y >= this.button.y - 30 && this.cursorPosition.y <= this.button.y + 30) {
-        this.button = null;
+    if (Canvas.button) {
+      if (this.cursorPosition.x >= Canvas.button.x - Canvas.buttonOffset && this.cursorPosition.x <= Canvas.button.x + Canvas.buttonOffset
+      && this.cursorPosition.y >= Canvas.button.y - Canvas.buttonOffset && this.cursorPosition.y <= Canvas.button.y + Canvas.buttonOffset) {
+        Canvas.button = null;
       }
     }
   }
