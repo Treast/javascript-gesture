@@ -14,6 +14,10 @@ export default class Canvas {
   private boo = false;
   static videoHeight: number;
   static videoWidth: number;
+  // Hand
+  private handPosition: Vector2;
+  private previousHandPosition: Vector2 = new Vector2(0, 0);
+  static lerpFactor: number = 0.1;
   // Button
   static buttonOffset: number = 30;
   static button: Vector2;
@@ -22,20 +26,39 @@ export default class Canvas {
   private originSlidingPosition: Vector2;
   static maxSlidingOffset: number = 100;
   static maxSliding: number = 500;
+  // Video
+  private video: HTMLVideoElement;
+  static runVideo: boolean = false;
   constructor() {
     this.canvas = document.querySelector('canvas');
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
     this.ctx = this.canvas.getContext('2d');
     this.corners = [];
-    this.lastHandPosition = new Vector2(0, 0);
   }
 
   init() {
     Webcam.init().then(() => {
       this.setupListeners();
+      this.loadVideo();
       this.loadModel();
     });
+  }
+
+  loadVideo() {
+    this.video = document.createElement('video');
+    this.video.src = './assets/forme1.mp4';
+    this.video.addEventListener('ended', () => this.video.play());
+    this.video.addEventListener('canplaythrough', () => this.video.play());
+  }
+
+  drawVideo() {
+    if (Canvas.runVideo) {
+      const videoWidth = 640;
+      const videoHeight = 360;
+      this.ctx.drawImage(this.video, this.previousHandPosition.x - videoWidth / 2, this.previousHandPosition.y - videoHeight / 2,
+                         videoWidth, videoHeight);
+    }
   }
 
   loadModel() {
@@ -48,7 +71,7 @@ export default class Canvas {
   setupListeners() {
     window.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.keyCode === 32 && this.corners.length < 4) {
-        this.corners.push(this.lastHandPosition);
+        this.corners.push(this.previousHandPosition);
       }
 
       if (e.keyCode === 17) {
@@ -69,7 +92,6 @@ export default class Canvas {
   }
 
   drawCorners() {
-
     if (DatGui.options.showCorners) {
       this.corners.map((item: Vector2) => {
         this.ctx.fillStyle = '#9ce5f4';
@@ -137,31 +159,41 @@ export default class Canvas {
     this.ctx.save();
     this.ctx.scale(-1, 1);
     this.ctx.translate(window.innerWidth * -1, 0);
-    this.ctx.drawImage(video, 0, 0, window.innerWidth, (video.height / video.width) * window.innerWidth);
+    // this.ctx.drawImage(video, 0, 0, window.innerWidth, (video.height / video.width) * window.innerWidth);
     this.ctx.restore();
 
     this.drawCorners();
 
     const keyPoints = pose.keypoints;
     // const rightWrist = this.getPart('rightWrist', keyPoints);
-    const rightWrist = this.getHand(keyPoints);
+    const hand = this.getHand(keyPoints);
 
     this.showButton();
     this.checkButtonPressed();
 
-    if (rightWrist) {
-      const rightWristPosition = this.getPartLocation(rightWrist, video.width, video.height);
+    this.drawVideo();
+
+    if (hand) {
+      const handPosition = this.getPartLocation(hand, video.width, video.height);
+
+      const currentHandPosition = handPosition.clone();
+      currentHandPosition.x = this.lerp(this.previousHandPosition.x, currentHandPosition.x, Canvas.lerpFactor);
+      currentHandPosition.y = this.lerp(this.previousHandPosition.y, currentHandPosition.y, Canvas.lerpFactor);
+      this.previousHandPosition = currentHandPosition;
 
       if (DatGui.options.showHandPosition) {
         this.ctx.fillStyle = 'red';
-        this.lastHandPosition = rightWristPosition;
-        this.ctx.fillRect(rightWristPosition.x - 5, rightWristPosition.y - 5, 10, 10);
+        this.ctx.fillRect(currentHandPosition.x - 5, currentHandPosition.y - 5, 10, 10);
       }
 
-      this.showCursor(rightWristPosition, video.width, video.height);
+      this.showCursor(currentHandPosition, video.width, video.height);
 
       this.checkSliding(pose);
     }
+  }
+
+  lerp(a: number, b: number, n: number) {
+    return (1 - n) * a + n * b;
   }
 
   checkSliding(pose: any) {
@@ -188,7 +220,7 @@ export default class Canvas {
 
       if (Math.abs(handPosition.x - this.originSlidingPosition.x) >= Canvas.maxSliding) {
         console.log('Success');
-        alert('Sliding offset');
+        alert('Success');
         this.resetSliding();
       }
 
@@ -241,23 +273,6 @@ export default class Canvas {
       this.ctx.fillStyle = 'green';
       this.ctx.arc(this.cursorPosition.x, this.cursorPosition.y, 10, 0, Math.PI * 2, true);
       this.ctx.fill();
-
-      // const P0P3 = P3.clone().substract(P0);
-      // const P3P2 = P2.clone().substract(P3);
-      // const P2P1 = P2.clone().substract(P1);
-      // const P1P0 = P1.clone().substract(P0);
-      //
-      // console.log('P0P3', P0P3);
-      // console.log('P0P3 Normal', P0P3.normal());
-      //
-      // const U0 = (handPosition.clone().substract(P0)).scalar(P0P3.normal());
-      // const U1 = (handPosition.clone().substract(P2)).scalar(P2P1.normal());
-      //
-      // const V0 = (handPosition.clone().substract(P0)).scalar(P1P0.normal());
-      // const V1 = (handPosition.clone().substract(P3)).scalar(P3P2.normal());
-      //
-      // const u = U0 / (U0 + U1);
-      // const v = V0 / (V0 + V1);
     }
   }
 

@@ -12,8 +12,12 @@ class DatGui {
     buttonOffset: 30,
     slidingWidth: 500,
     slidingMaxOffset: 50,
+    lerpFactor: 0.1,
     generateButton: () => {
       Canvas.addButton();
+    },
+    runVideo: () => {
+      Canvas.runVideo = true;
     },
     activateSliding: () => {
       this.options.isSliding = true;
@@ -31,11 +35,17 @@ class DatGui {
     const buttonOffset = actions.add(this.options, 'buttonOffset').min(5).max(100);
     const slidingMaxOffset = actions.add(this.options, 'slidingMaxOffset').min(5).max(100);
     const slidingWidth = actions.add(this.options, 'slidingWidth').min(50).max(1000);
+    const lerpFactor = actions.add(this.options, 'lerpFactor').min(0).max(1).step(0.05);
+    actions.add(this.options, 'runVideo');
     actions.add(this.options, 'generateButton');
     actions.add(this.options, 'activateSliding');
 
     buttonOffset.onChange((value: number) => {
       Canvas.buttonOffset = value;
+    });
+
+    lerpFactor.onChange((value: number) => {
+      Canvas.lerpFactor = value;
     });
 
     slidingMaxOffset.onChange((value: number) => {
