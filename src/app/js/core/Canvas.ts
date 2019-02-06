@@ -62,7 +62,7 @@ export default class Canvas {
   }
 
   loadModel() {
-    posenet.load(1.0).then((net: any) => {
+    posenet.load(0.5).then((net: any) => {
       this.net = net;
       this.render();
     });
