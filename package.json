@@ -62,7 +62,9 @@
     "@tensorflow-models/posenet": "^0.2.3",
     "@tensorflow/tfjs": "^0.14.2",
     "@types/dat.gui": "^0.7.2",
+    "@types/gsap": "^1.20.1",
     "bluebird": "^3.5.3",
-    "dat.gui": "^0.7.5"
+    "dat.gui": "^0.7.5",
+    "gsap": "^2.0.2"
   }
 }
